@@ -5,7 +5,6 @@ import { Heart, Sparkles } from "lucide-react";
 
 const CARD_WIDTH = 700;
 const CARD_HEIGHT = 440;
-const REJECT_PROXIMITY = 50;
 const TYPEWRITER_TEXT =
   "Cậu không cần trả lời vội ngay đâu... Chỉ cần biết rằng, bên cạnh cậu, mỗi ngày đều sẽ là một ngày thật đáng yêu.";
 const GIF_STICKERS = [
@@ -17,8 +16,16 @@ const LOVE_PHOTOS = [
   { src: "/anh-mo-ta.jpg", alt: "Gau trang tha tim de thuong", rotate: -5 },
   { src: "/meme-tha-tim.jpg", alt: "Meme tha tim nen hong", rotate: 4 },
 ];
+const REJECT_MESSAGES = [
+  "Đồng ý đi mà 🥺",
+  "Bấm Đồng ý nhaaa",
+  "Trái tim mình mong manh lắm đó 💔",
+  "Sai nút rồi đóoo 😝",
+  "Thêm một cơ hội thôi neee",
+];
 
 const random = (min, max) => Math.random() * (max - min) + min;
+const randomInt = (max) => Math.floor(Math.random() * max);
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -234,6 +241,12 @@ function App() {
 
   const [accepted, setAccepted] = useState(false);
   const [sparkles, setSparkles] = useState([]);
+  const [acceptScale, setAcceptScale] = useState(1);
+  const [rejectScale, setRejectScale] = useState(1);
+  const [rejectMessage, setRejectMessage] = useState(REJECT_MESSAGES[0]);
+  const [showRejectHint, setShowRejectHint] = useState(false);
+  const [showRejectToast, setShowRejectToast] = useState(true);
+  const hintTimerRef = useRef(null);
   const [rejectPosition, setRejectPosition] = useState({
     x: isMobile ? 0 : 160,
     y: 0,
@@ -250,6 +263,12 @@ function App() {
     return () => window.removeEventListener("resize", recenter);
   }, [isMobile]);
 
+  useEffect(() => {
+    return () => {
+      if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    };
+  }, []);
+
   const spawnSparkles = (x, y) => {
     const next = Array.from({ length: 14 }, (_, idx) => ({
       id: `${Date.now()}-${idx}`,
@@ -265,22 +284,18 @@ function App() {
   const jumpRejectButton = () => {
     const maxX = isMobile ? 110 : 220;
     const maxY = isMobile ? 95 : 120;
+    setAcceptScale((prev) => Math.min(prev + 0.07, 2));
+    setRejectScale((prev) => Math.max(prev - 0.07, 0));
+    setRejectMessage(REJECT_MESSAGES[randomInt(REJECT_MESSAGES.length)]);
+    setShowRejectHint(true);
+    setShowRejectToast(true);
+    if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+    hintTimerRef.current = setTimeout(() => setShowRejectHint(false), 1600);
     setRejectPosition({
       x: random(-maxX, maxX),
       y: random(-maxY, maxY),
       rotate: random(-28, 28),
     });
-  };
-
-  const handlePointerMoveCard = (event) => {
-    if (isMobile) return;
-
-    if (!rejectRef.current) return;
-    const b = rejectRef.current.getBoundingClientRect();
-    const cx = b.left + b.width / 2;
-    const cy = b.top + b.height / 2;
-    const dist = Math.hypot(event.clientX - cx, event.clientY - cy);
-    if (dist < REJECT_PROXIMITY) jumpRejectButton();
   };
 
   const celebrate = () => {
@@ -298,10 +313,7 @@ function App() {
   };
 
   return (
-    <div
-      className="relative min-h-screen overflow-hidden bg-[#120522] text-white [cursor:none]"
-      onPointerMove={handlePointerMoveCard}
-    >
+    <div className="relative min-h-screen overflow-hidden bg-[#120522] text-white [cursor:none]">
       <motion.div
         className="absolute inset-0"
         animate={
@@ -389,6 +401,20 @@ function App() {
               </p>
 
               <div className="relative z-10 mt-12 flex min-h-[120px] flex-wrap items-center justify-center gap-5">
+                <AnimatePresence>
+                  {showRejectToast && (
+                    <motion.div
+                      className="pointer-events-none absolute -top-12 left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-pink-100/60 bg-[#3a0c4f]/80 px-4 py-2 text-xs font-semibold text-pink-50 shadow-[0_16px_36px_rgba(42,5,61,0.55)] backdrop-blur-lg md:text-sm"
+                      initial={{ opacity: 0, y: 12, scale: 0.94 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                    >
+                      {rejectMessage}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 <motion.button
                   type="button"
                   className="relative rounded-2xl bg-pink-500 px-9 py-4 text-lg font-bold text-white outline-none"
@@ -397,8 +423,7 @@ function App() {
                       "0 18px 0 #be185d, 0 24px 42px rgba(219, 39, 119, 0.55), 0 0 40px rgba(255, 111, 206, 0.35)",
                   }}
                   animate={{
-                    y: [0, -5, 0],
-                    scale: [1, 1.02, 1],
+                    scale: acceptScale,
                     boxShadow: [
                       "0 18px 0 #be185d, 0 24px 42px rgba(219, 39, 119, 0.5), 0 0 36px rgba(255, 111, 206, 0.3)",
                       "0 20px 0 #be185d, 0 28px 44px rgba(219, 39, 119, 0.65), 0 0 54px rgba(255, 111, 206, 0.55)",
@@ -406,17 +431,9 @@ function App() {
                     ],
                   }}
                   transition={{
-                    duration: 1.8,
-                    repeat: Infinity,
-                    ease: "easeInOut",
+                    scale: { type: "spring", stiffness: 280, damping: 18 },
+                    boxShadow: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
                   }}
-                  whileHover={{
-                    scale: 1.09,
-                    filter: "brightness(1.08)",
-                    boxShadow:
-                      "0 20px 0 #be185d, 0 30px 50px rgba(219, 39, 119, 0.72), 0 0 70px rgba(255, 174, 228, 0.9)",
-                  }}
-                  whileTap={{ scale: 0.96, y: 4 }}
                   onPointerEnter={(event) =>
                     spawnSparkles(event.clientX, event.clientY)
                   }
@@ -432,21 +449,35 @@ function App() {
                 <motion.button
                   ref={rejectRef}
                   type="button"
-                  className="rounded-2xl border border-white/35 bg-white/20 px-8 py-4 text-lg font-semibold text-white backdrop-blur-md"
+                  className="relative rounded-2xl border border-white/35 bg-white/20 px-8 py-4 text-lg font-semibold text-white backdrop-blur-md"
                   animate={{
                     x: rejectPosition.x,
                     y: rejectPosition.y,
                     rotate: rejectPosition.rotate,
+                    scale: rejectScale,
+                    opacity: rejectScale <= 0.02 ? 0 : 1,
                   }}
                   transition={{
                     type: "spring",
                     stiffness: 400,
                     damping: 10,
                   }}
-                  whileHover={{ scale: 0.98 }}
-                  onPointerEnter={jumpRejectButton}
-                  onTouchStart={jumpRejectButton}
+                  style={{ pointerEvents: rejectScale <= 0.02 ? "none" : "auto" }}
+                  onClick={jumpRejectButton}
                 >
+                  <AnimatePresence>
+                    {showRejectHint && (
+                      <motion.div
+                        className="pointer-events-none absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-pink-100/60 bg-pink-300/30 px-3 py-1 text-xs font-medium text-pink-50 shadow-[0_8px_24px_rgba(236,72,153,0.35)] backdrop-blur-md"
+                        initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                      >
+                        {rejectMessage}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   Từ chối
                 </motion.button>
 
