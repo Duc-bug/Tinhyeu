@@ -22,6 +22,11 @@ const REJECT_MESSAGES = [
   "Trái tim mình mong manh lắm đó 💔",
   "Sai nút rồi đóoo 😝",
   "Thêm một cơ hội thôi neee",
+  "Ấn Đồng ý thử một lần đi nè 💗",
+  "Mình hứa sẽ làm bạn cười mỗi ngày đó ✨",
+  "Tim này chỉ chờ bạn gật đầu thôi á 🫶",
+  "Đừng nỡ từ chối mà, tội mình ghê 🥹",
+  "Chọn Đồng ý là đúng bài luôn đó 😚",
 ];
 
 const random = (min, max) => Math.random() * (max - min) + min;
