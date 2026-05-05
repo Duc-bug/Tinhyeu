@@ -8,9 +8,12 @@ const CARD_HEIGHT = 440;
 const TYPEWRITER_TEXT =
   "Cậu không cần trả lời vội ngay đâu... Chỉ cần biết rằng, bên cạnh cậu, mỗi ngày đều sẽ là một ngày thật đáng yêu.";
 const GIF_STICKERS = [
-  "https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif",
-  "https://media.giphy.com/media/l4FGpP4lxGGgK5CBW/giphy.gif",
-  "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif",
+  "/Cat Love GIF by NGcorpvtc.gif",
+  "/Propose I Love You GIF.gif",
+  "/231fb5027639114dd7cf3f8f3ef9cb86.gif",
+  "/Happy Puppy Love GIF by ikas.gif",
+  "/Flowers Love GIF.gif",
+  "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWttYTBxYTUzc3N1M2J6aWt4bzhqZXJieDRjc2k0Y2Q0Y3F6aTZtcSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3oriO6qJiXajN0TyDu/giphy.gif",
 ];
 const LOVE_PHOTOS = [
   { src: "/anh-mo-ta.jpg", alt: "Gau trang tha tim de thuong", rotate: -5 },
@@ -180,23 +183,54 @@ function CursorTrail({ reduceMotion }) {
 
 function FloatingGifs({ reduceMotion }) {
   const stickers = useMemo(() => {
-    const cols = 3;
-    const rows = 2;
-    const total = cols * rows;
-    return Array.from({ length: total }, (_, idx) => {
-      const col = idx % cols;
-      const row = Math.floor(idx / cols);
-      return {
+    const total = GIF_STICKERS.length;
+    const placed = [];
+
+    for (let idx = 0; idx < total; idx += 1) {
+      const side = idx % 2 === 0 ? "left" : "right";
+      const size = random(84, 120);
+      let candidate = null;
+
+      for (let tries = 0; tries < 24; tries += 1) {
+        // Keep stickers away from extreme corners and lower area.
+        const x = side === "left" ? random(12, 30) : random(70, 88);
+        let y = random(12, 66);
+        // Keep the middle content area cleaner for text/buttons.
+        if (y > 34 && y < 56) y = y < 45 ? random(12, 30) : random(58, 66);
+
+        const overlap = placed.some((item) => {
+          const dx = x - item.x;
+          const dy = y - item.y;
+          const distance = Math.hypot(dx, dy);
+          return distance < 18;
+        });
+
+        if (!overlap) {
+          candidate = { x, y };
+          break;
+        }
+      }
+
+      if (!candidate) {
+        candidate = {
+          x: side === "left" ? random(12, 28) : random(72, 88),
+          y: random(12, 64),
+        };
+      }
+
+      placed.push({
         id: idx,
-        src: GIF_STICKERS[idx % GIF_STICKERS.length],
-        x: 14 + col * 32 + random(-2, 2),
-        y: 16 + row * 42 + random(-3, 3),
-        size: random(64, 90),
+        src: GIF_STICKERS[idx],
+        x: candidate.x,
+        y: candidate.y,
+        size,
         duration: random(7, 12),
         delay: random(0, 3),
-        rotate: random(-6, 6),
-      };
-    });
+        rotate: random(-8, 8),
+      });
+    }
+
+    return placed;
   }, []);
 
   return (
